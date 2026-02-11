@@ -69,8 +69,13 @@ async def query_models_parallel(
     """
     import asyncio
 
-    # Create tasks for all models
-    tasks = [query_model(model, messages) for model in models]
+    # Add staggered delays to avoid rate limiting on free models
+    async def query_with_delay(model: str, delay: float):
+        await asyncio.sleep(delay)
+        return await query_model(model, messages)
+
+    # Create tasks with staggered delays (0.5s apart)
+    tasks = [query_with_delay(model, i * 0.5) for i, model in enumerate(models)]
 
     # Wait for all to complete
     responses = await asyncio.gather(*tasks)
